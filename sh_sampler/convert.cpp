@@ -1,0 +1,157 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+#include <stdexcept>
+#include <array>
+#include "convert.h"
+
+using namespace std;
+
+void convert_cube_uv_to_xyz(int index, float u, float v, float *x, float *y, float *z)
+{
+	// convert range 0 to 1 to -1 to 1
+	float uc = 2.0f * u - 1.0f;
+	float vc = 2.0f * v - 1.0f;
+	switch (index)
+	{
+	case 0: *x = 1.0f; *y = vc; *z = -uc; break;	// POSITIVE X
+	case 1: *x = -1.0f; *y = vc; *z = uc; break;	// NEGATIVE X
+	case 2: *x = uc; *y = 1.0f; *z = -vc; break;	// POSITIVE Y
+	case 3: *x = uc; *y = -1.0f; *z = vc; break;	// NEGATIVE Y
+	case 4: *x = uc; *y = vc; *z = 1.0f; break;	// POSITIVE Z
+	case 5: *x = -uc; *y = vc; *z = -1.0f; break;	// NEGATIVE Z
+	}
+}
+
+void convert_xyz_to_cube_uv(float x, float y, float z, int *index, float *u, float *v)
+{
+	float absX = fabs(x);
+	float absY = fabs(y);
+	float absZ = fabs(z);
+
+	int isXPositive = x > 0 ? 1 : 0;
+	int isYPositive = y > 0 ? 1 : 0;
+	int isZPositive = z > 0 ? 1 : 0;
+
+	float maxAxis, uc, vc;
+
+	// POSITIVE X
+	if (isXPositive && absX >= absY && absX >= absZ) {
+		// u (0 to 1) goes from +z to -z
+		// v (0 to 1) goes from -y to +y
+		maxAxis = absX;
+		uc = -z;
+		vc = y;
+		*index = 0;
+	}
+	// NEGATIVE X
+	if (!isXPositive && absX >= absY && absX >= absZ) {
+		// u (0 to 1) goes from -z to +z
+		// v (0 to 1) goes from -y to +y
+		maxAxis = absX;
+		uc = z;
+		vc = y;
+		*index = 1;
+	}
+	// POSITIVE Y
+	if (isYPositive && absY >= absX && absY >= absZ) {
+		// u (0 to 1) goes from -x to +x
+		// v (0 to 1) goes from +z to -z
+		maxAxis = absY;
+		uc = x;
+		vc = -z;
+		*index = 2;
+	}
+	// NEGATIVE Y
+	if (!isYPositive && absY >= absX && absY >= absZ) {
+		// u (0 to 1) goes from -x to +x
+		// v (0 to 1) goes from -z to +z
+		maxAxis = absY;
+		uc = x;
+		vc = z;
+		*index = 3;
+	}
+	// POSITIVE Z
+	if (isZPositive && absZ >= absX && absZ >= absY) {
+		// u (0 to 1) goes from -x to +x
+		// v (0 to 1) goes from -y to +y
+		maxAxis = absZ;
+		uc = x;
+		vc = y;
+		*index = 4;
+	}
+	// NEGATIVE Z
+	if (!isZPositive && absZ >= absX && absZ >= absY) {
+		// u (0 to 1) goes from +x to -x
+		// v (0 to 1) goes from -y to +y
+		maxAxis = absZ;
+		uc = -x;
+		vc = y;
+		*index = 5;
+	}
+
+	// Convert range from -1 to 1 to 0 to 1
+	*u = 0.5f * (uc / maxAxis + 1.0f);
+	*v = 0.5f * (vc / maxAxis + 1.0f);
+}
+
+
+vector<XYZRGB> ReadCubemap(array<string, 6> images)
+{
+	vector<XYZRGB> data;
+	for (int index = 0; index < 6; index++){
+		cv::Mat img = cv::imread(images[index]);
+		if (!img.data)
+			throw runtime_error("cannot open " + images[index]);
+		img.convertTo(img, CV_32FC3);
+
+		float w = float(img.cols - 1), h = float(img.rows - 1);
+		for (int j = 0; j < img.rows; j++){
+			for (int i = 0; i < img.cols; i++){
+				auto pixel = img.at<cv::Vec3f>(j, i);
+				RGB color = { pixel[0], pixel[1], pixel[2] };
+				float u = float(i) / w;
+				float v = float(j) / h;
+				XYZ p;
+				convert_cube_uv_to_xyz(i, u, v, &p.x, &p.y, &p.z);
+				data.push_back({ p, color });
+			}
+		}
+	}
+	return data;
+}
+
+void WritePLY(const vector<XYZRGB>& points, string filename)
+{
+	ofstream ofs(filename, ios::binary);
+	if (!ofs)
+		throw runtime_error("Cannot open " + filename);
+	// write header
+	ofs << "ply" << endl;
+	ofs << "format binarylittleendian 1.0" << endl;
+	ofs << "element vertex " << points.size() << endl;
+	ofs << "property float x" << endl;
+	ofs << "property float y" << endl;
+	ofs << "property float z" << endl;
+	ofs << "property uchar red" << endl;
+	ofs << "property uchar green" << endl;
+	ofs << "property uchar blue" << endl;
+	ofs << "endheader" << endl;
+
+	int bufsize = (sizeof(float)* 3 + sizeof(char)* 3)*points.size();
+	vector<char> buf(bufsize);
+	char* p = &buf[0];
+	for (XYZRGB pc : points) {		
+		float* pf = (float*)p;
+		*pf++ = pc.pos.x;
+		*pf++ = pc.pos.y;
+		*pf++ = pc.pos.z;
+		p = (char*)pf;
+		*p++ = (char)std::min(int(pc.color.r * 255), 255);
+		*p++ = (char)std::min(int(pc.color.g * 255), 255);
+		*p++ = (char)std::min(int(pc.color.b * 255), 255);
+	}
+	ofs.write(&buf[0], buf.size());
+}

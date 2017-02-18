@@ -79,6 +79,13 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="convert.cpp" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="convert.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\vc2013\packages\OpenCV.2.4.10\build\native\OpenCV.targets" Condition="Exists('..\vc2013\packages\OpenCV.2.4.10\build\native\OpenCV.targets')" />
