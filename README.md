@@ -1,0 +1,4 @@
+Spherical Harmonics Lighting
+============================
+
+Implementation
