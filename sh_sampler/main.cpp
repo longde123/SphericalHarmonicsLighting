@@ -17,8 +17,10 @@ int main(int argc, char *argv[])
 		for (int i = 0; i < 6; i++){
 			images[i] = argv[i + 1];
 		}
-		auto points = ReadCubemap(images);
-		WritePLY(points, argv[7]);
+		string plyfile = argv[7];
+		Cubemap cubemap(images);
+		WritePLY plywriter(plyfile, cubemap.size());
+		cubemap.Read(plywriter);
 	}
 	catch (const exception& e){
 		cerr << e.what() << endl;

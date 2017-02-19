@@ -5,6 +5,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <array>
+#include <functional>
 #include "convert.h"
 
 using namespace std;
@@ -97,10 +98,25 @@ void convert_xyz_to_cube_uv(float x, float y, float z, int *index, float *u, flo
 	*v = 0.5f * (vc / maxAxis + 1.0f);
 }
 
-
-vector<XYZRGB> ReadCubemap(array<string, 6> images)
+Cubemap::Cubemap(std::array<std::string, 6> image_filenames)
+	:image_files(image_filenames)
 {
-	vector<XYZRGB> data;
+	// load image
+	for (int i = 0; i < 6; i++){
+		images[i] = cv::imread(image_files[i]);
+		if (i == 0){
+			rows = images[i].rows;
+			cols = images[i].cols;
+		}
+		else{
+			if (images[i].rows != rows || images[i].cols != cols)
+				throw runtime_error("size of images are not match");
+		}
+	}
+}
+
+void Cubemap::Read(std::function<void(XYZRGB)> proc)
+{
 	for (int index = 0; index < 6; index++){
 		cv::Mat img = cv::imread(images[index]);
 		if (!img.data)
@@ -116,22 +132,21 @@ vector<XYZRGB> ReadCubemap(array<string, 6> images)
 				float v = float(j) / h;
 				XYZ p;
 				convert_cube_uv_to_xyz(i, u, v, &p.x, &p.y, &p.z);
-				data.push_back({ p, color });
+				proc({ p, color });
 			}
 		}
 	}
-	return data;
 }
 
-void WritePLY(const vector<XYZRGB>& points, string filename)
+WritePLY::WritePLY(string filename, int size)
 {
-	ofstream ofs(filename, ios::binary);
+	ofs.open(filename, ios::binary);
 	if (!ofs)
 		throw runtime_error("Cannot open " + filename);
 	// write header
 	ofs << "ply" << endl;
 	ofs << "format binarylittleendian 1.0" << endl;
-	ofs << "element vertex " << points.size() << endl;
+	ofs << "element vertex " << size << endl;
 	ofs << "property float x" << endl;
 	ofs << "property float y" << endl;
 	ofs << "property float z" << endl;
@@ -140,18 +155,9 @@ void WritePLY(const vector<XYZRGB>& points, string filename)
 	ofs << "property uchar blue" << endl;
 	ofs << "endheader" << endl;
 
-	int bufsize = (sizeof(float)* 3 + sizeof(char)* 3)*points.size();
-	vector<char> buf(bufsize);
-	char* p = &buf[0];
-	for (XYZRGB pc : points) {		
-		float* pf = (float*)p;
-		*pf++ = pc.pos.x;
-		*pf++ = pc.pos.y;
-		*pf++ = pc.pos.z;
-		p = (char*)pf;
-		*p++ = (char)std::min(int(pc.color.r * 255), 255);
-		*p++ = (char)std::min(int(pc.color.g * 255), 255);
-		*p++ = (char)std::min(int(pc.color.b * 255), 255);
-	}
-	ofs.write(&buf[0], buf.size());
+}
+
+void WritePLY::operator()(XYZRGB pixel)
+{
+	ofs.write((char*)&pixel, sizeof(pixel));
 }
