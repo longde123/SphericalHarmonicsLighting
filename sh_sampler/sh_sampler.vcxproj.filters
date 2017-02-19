@@ -24,9 +24,15 @@
     <ClCompile Include="convert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="sphericalharmonics.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="convert.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sphericalharmonics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -2,10 +2,20 @@
 #define SPHERICAL_HARMONICS_H_
 
 #include <array>
+#include "convert.h"
 
 // normalize first
-void HarmonicBasis4(float basis[4], float x, float y, float z, float r = 1.f);
-void HarmonicBasis9(float basis[9], float x, float y, float z, float r = 1.f);
-void HarmonicBasis16(float basis[16], float x, float y, float z, float r = 1.f);
+template<int COEF_NUM>
+void HarmonicBasis(float basis[4], float x, float y, float z, float r = 1.f);
+
+template <int COEF_NUM>
+class HarmonicIntegral{
+	int count = 0;
+	std::array<RGB, COEF_NUM> coef;
+public:
+	HarmonicIntegral();
+	void operator()(XYZRGB pixel);
+	std::array<RGB, COEF_NUM> getCoefficients();
+};
 
 #endif

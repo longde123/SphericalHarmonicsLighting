@@ -82,9 +82,11 @@
   <ItemGroup>
     <ClCompile Include="convert.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="sphericalharmonics.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="convert.h" />
+    <ClInclude Include="sphericalharmonics.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
