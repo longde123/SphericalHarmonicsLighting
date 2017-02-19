@@ -104,6 +104,7 @@ Cubemap::Cubemap(std::array<std::string, 6> image_filenames)
 	// load image
 	for (int i = 0; i < 6; i++){
 		images[i] = cv::imread(image_files[i]);
+		images[i].convertTo(images[i], CV_32FC3);
 		if (i == 0){
 			rows = images[i].rows;
 			cols = images[i].cols;
@@ -115,23 +116,20 @@ Cubemap::Cubemap(std::array<std::string, 6> image_filenames)
 	}
 }
 
-void Cubemap::Read(std::function<void(XYZRGB)> proc)
+void Cubemap::Read(function<void(XYZRGB)> proc)
 {
 	for (int index = 0; index < 6; index++){
-		cv::Mat img = cv::imread(images[index]);
-		if (!img.data)
-			throw runtime_error("cannot open " + images[index]);
-		img.convertTo(img, CV_32FC3);
-
+		cv::Mat& img = images[index];
+		img /= 255;
 		float w = float(img.cols - 1), h = float(img.rows - 1);
 		for (int j = 0; j < img.rows; j++){
 			for (int i = 0; i < img.cols; i++){
 				auto pixel = img.at<cv::Vec3f>(j, i);
 				RGB color = { pixel[0], pixel[1], pixel[2] };
 				float u = float(i) / w;
-				float v = float(j) / h;
+				float v = float(img.rows - j - 1) / h;
 				XYZ p;
-				convert_cube_uv_to_xyz(i, u, v, &p.x, &p.y, &p.z);
+				convert_cube_uv_to_xyz(index, u, v, &p.x, &p.y, &p.z);
 				proc({ p, color });
 			}
 		}
@@ -140,12 +138,13 @@ void Cubemap::Read(std::function<void(XYZRGB)> proc)
 
 WritePLY::WritePLY(string filename, int size)
 {
-	ofs.open(filename, ios::binary);
+	plyfs.reset(new ofstream(filename, ios::binary));
+	ofstream& ofs = *plyfs;
 	if (!ofs)
 		throw runtime_error("Cannot open " + filename);
 	// write header
 	ofs << "ply" << endl;
-	ofs << "format binarylittleendian 1.0" << endl;
+	ofs << "format binary_little_endian 1.0" << endl;
 	ofs << "element vertex " << size << endl;
 	ofs << "property float x" << endl;
 	ofs << "property float y" << endl;
@@ -153,11 +152,28 @@ WritePLY::WritePLY(string filename, int size)
 	ofs << "property uchar red" << endl;
 	ofs << "property uchar green" << endl;
 	ofs << "property uchar blue" << endl;
-	ofs << "endheader" << endl;
+	ofs << "end_header" << endl;
 
 }
 
+namespace{
+
+inline unsigned char uchar_color(float c)
+{
+	return (unsigned char)max(min(int(c * 255), 255), 0);
+}
+};
+
 void WritePLY::operator()(XYZRGB pixel)
 {
-	ofs.write((char*)&pixel, sizeof(pixel));
+	char buf[sizeof(float)*3 + sizeof(unsigned char)*3];
+	float *p = (float*)buf;
+	p[0] = pixel.pos.x;
+	p[1] = pixel.pos.y;
+	p[2] = pixel.pos.z;
+	unsigned char *c = (unsigned char*)(buf + sizeof(float)* 3);
+	c[0] = uchar_color(pixel.color.r);
+	c[1] = uchar_color(pixel.color.g);
+	c[2] = uchar_color(pixel.color.b);
+	plyfs->write(buf, sizeof(buf));
 }

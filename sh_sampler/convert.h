@@ -5,12 +5,13 @@
 #include <vector>
 #include <array>
 #include <functional>
+#include <memory>
 #include <fstream>
 #include <string>
 #include <opencv2/core/core.hpp>
 
 
-enum CUBEMAP_FACES{ POSX, POSY, POSZ, NEGX, NEGY, NEGZ };
+enum CUBEMAP_FACES{ POSX, NEGX, POSY, NEGY, POSZ, NEGZ};
 
 struct XYZ{ float x, y, z; };
 struct RGB{ float r, g, b; };
@@ -27,9 +28,9 @@ public:
 };
 
 class WritePLY{
-	ofstream ofs;
+	std::shared_ptr<std::ofstream> plyfs;
 public:
-	WritePLY(string filename, int size);
+	WritePLY(std::string filename, int size);
 	void operator()(XYZRGB pixel);
 };
 

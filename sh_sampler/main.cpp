@@ -8,7 +8,7 @@ using namespace std;
 int main(int argc, char *argv[])
 {
 	if (argc < 8){
-		cout << "Usage: sh_sampler posx posy posz negx negy negz output.txt" << endl;
+		cout << "Usage: sh_sampler posx negx posy negy posz negz output.txt" << endl;
 		return 0;
 	}
 	
