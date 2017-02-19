@@ -6,6 +6,11 @@ using namespace std;
 
 const float PI = float(M_PI);
 
+template class HarmonicIntegral<4>;
+template class HarmonicIntegral<9>;
+template class HarmonicIntegral<16>;
+
+
 // reference: https://en.wikipedia.org/wiki/Table_of_spherical_harmonics
 
 template<>
@@ -26,7 +31,7 @@ void HarmonicBasis<9>(float basis[9], float x, float y, float z, float r)
 	basis[4] = 1.f / 2.f * sqrt(15.f / PI) * x * y / r2;
 	basis[5] = 1.f / 2.f * sqrt(15.f / PI) * y * z / r2;
 	basis[6] = 1.f / 4.f * sqrt(5.f / PI) * (-x*x - y*y + 2 * z*z) / r2;
-	basis[7] = 1.f / 2.f * sqrt(15.f / PI) * z * x / (r*r);
+	basis[7] = 1.f / 2.f * sqrt(15.f / PI) * z * x / r2;
 	basis[8] = 1.f / 4.f * sqrt(15.f / PI) * (x*x - y*y) / r2;
 }
 
@@ -49,7 +54,7 @@ template<int COEF_NUM>
 HarmonicIntegral<COEF_NUM>::HarmonicIntegral()
 {
 	for (int i = 0; i < COEF_NUM; i++)
-		coef[i] = 0;
+		coef[i] = {0,0,0};
 }
 
 
@@ -71,11 +76,12 @@ void HarmonicIntegral<COEF_NUM>::operator()(XYZRGB pixel)
 template<int COEF_NUM>
 std::array<RGB, COEF_NUM> HarmonicIntegral<COEF_NUM>::getCoefficients()
 {
-	std::array<RGB, COEF_NUM> coefs;
-	for (auto c : coefs){
-		c.r *= 4 * PI / count;
-		c.g *= 4 * PI / count;
-		c.b *= 4 * PI / count;
+	std::array<RGB, COEF_NUM> coefficients = coef;
+
+	for (auto& c : coefficients){
+		c.r = c.r * 4 * PI / count;
+		c.g = c.g * 4 * PI / count;
+		c.b = c.b * 4 * PI / count;
 	}
-	return coefs;
+	return coefficients;
 }

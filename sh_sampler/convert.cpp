@@ -116,26 +116,6 @@ Cubemap::Cubemap(std::array<std::string, 6> image_filenames)
 	}
 }
 
-void Cubemap::Read(function<void(XYZRGB)> proc)
-{
-	for (int index = 0; index < 6; index++){
-		cv::Mat& img = images[index];
-		img /= 255;
-		float w = float(img.cols - 1), h = float(img.rows - 1);
-		for (int j = 0; j < img.rows; j++){
-			for (int i = 0; i < img.cols; i++){
-				auto pixel = img.at<cv::Vec3f>(j, i);
-				RGB color = { pixel[0], pixel[1], pixel[2] };
-				float u = float(i) / w;
-				float v = float(img.rows - j - 1) / h;
-				XYZ p;
-				convert_cube_uv_to_xyz(index, u, v, &p.x, &p.y, &p.z);
-				proc({ p, color });
-			}
-		}
-	}
-}
-
 WritePLY::WritePLY(string filename, int size)
 {
 	plyfs.reset(new ofstream(filename, ios::binary));
@@ -176,4 +156,11 @@ void WritePLY::operator()(XYZRGB pixel)
 	c[1] = uchar_color(pixel.color.g);
 	c[2] = uchar_color(pixel.color.b);
 	plyfs->write(buf, sizeof(buf));
+}
+
+
+std::ostream& operator<<(std::ostream& os, RGB color)
+{
+	os << '(' << color.r << ',' << color.g << ',' << color.b << ')';
+	return os;
 }

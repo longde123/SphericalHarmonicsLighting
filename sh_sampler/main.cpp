@@ -2,6 +2,7 @@
 #include <array>
 #include <string>
 #include "convert.h"
+#include "sphericalharmonics.h"
 
 using namespace std;
 
@@ -19,8 +20,13 @@ int main(int argc, char *argv[])
 		}
 		string plyfile = argv[7];
 		Cubemap cubemap(images);
-		WritePLY plywriter(plyfile, cubemap.size());
-		cubemap.Read(plywriter);
+		//WritePLY plywriter(plyfile, cubemap.size());
+		//cubemap.Read(plywriter);
+		HarmonicIntegral<16> harmonics;
+		cubemap.Read(harmonics);
+		auto coefs = harmonics.getCoefficients();
+		for (auto c : coefs)
+			cout << c << endl;
 	}
 	catch (const exception& e){
 		cerr << e.what() << endl;
