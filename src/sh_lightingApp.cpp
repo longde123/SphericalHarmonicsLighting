@@ -17,11 +17,11 @@ class sh_lightingApp : public App {
 
 	CameraPersp cam;
 	gl::BatchRef        object;
-	gl::GlslProgRef		glsl;
+	gl::GlslProgRef		sh_lighting_glsl;
 
 	ImageSourceRef envimgs[6];
-	gl::TextureCubeMapRef	mCubeMap;
-	gl::BatchRef			mSkyBoxBatch;
+	gl::TextureCubeMapRef	cubemap;
+	gl::BatchRef			skybox;
 
 	int mousex, mousey;
 };
@@ -29,63 +29,10 @@ class sh_lightingApp : public App {
 void sh_lightingApp::setup()
 {
 	cam.lookAt({ 3, 4, 5 }, {}, { 0, 1, 0 });
-	glsl = gl::GlslProg::create(gl::GlslProg::Format()
-		.vertex(CI_GLSL(150,
-		uniform mat3 ciNormalMatrix;
-	uniform mat4	ciModelViewProjection;
-	in vec4			ciPosition;
-	in vec3	ciNormal;
-
-	out vec3 normal;
-	void main(void) {
-		gl_Position = ciModelViewProjection * ciPosition;
-		//normal = normalize(ciNormalMatrix * ciNormal);
-		normal = normalize(ciNormal);
-	}
-	))
-		.fragment(CI_GLSL(150,
-		const float PI = 3.1415926535897932384626433832795;
-	in vec3 normal;
-	uniform vec3 coef[16];
-
-	out vec4 oColor;
-
-	void main(void) {
-		float basis[16];
-
-		float x = normal.x;
-		float y = normal.y;
-		float z = normal.z;
-		float x2 = x*x;
-		float y2 = y*y;
-		float z2 = z*z;
-
-		basis[0] = 1.f / 2.f * sqrt(1.f / PI);
-		basis[1] = sqrt(3.f / (4.f*PI))*y;
-		basis[2] = sqrt(3.f / (4.f*PI))*z;
-		basis[3] = sqrt(3.f / (4.f*PI))*x;
-		basis[4] = 1.f / 2.f * sqrt(15.f / PI) * x * y;
-		basis[5] = 1.f / 2.f * sqrt(15.f / PI) * y * z;
-		basis[6] = 1.f / 4.f * sqrt(5.f / PI) * (-x*x - y*y + 2 * z*z);
-		basis[7] = 1.f / 2.f * sqrt(15.f / PI) * z * x;
-		basis[8] = 1.f / 4.f * sqrt(15.f / PI) * (x*x - y*y);
-		basis[9] = 1.f / 4.f*sqrt(35.f / (2.f*PI))*(3 * x2 - y2)*y;
-		basis[10] = 1.f / 2.f*sqrt(105.f / PI)*x*y*z;
-		basis[11] = 1.f / 4.f*sqrt(21.f / (2.f*PI))*y*(4 * z2 - x2 - y2);
-		basis[12] = 1.f / 4.f*sqrt(7.f / PI)*z*(2 * z2 - 3 * x2 - 3 * y2);
-		basis[13] = 1.f / 4.f*sqrt(21.f / (2.f*PI))*x*(4 * z2 - x2 - y2);
-		basis[14] = 1.f / 4.f*sqrt(105.f / PI)*(x2 - y2)*z;
-		basis[15] = 1.f / 4.f*sqrt(35.f / (2 * PI))*(x2 - 3 * y2)*x;
-
-		vec3 c;
-		for (int i = 0; i < 16; i++)
-			c += coef[i] * basis[i];
-		oColor = vec4(c, 1);
-	}
-	)));
+	sh_lighting_glsl = gl::GlslProg::create(loadAsset("sh_lighting.vert"), loadAsset("sh_lighting.frag"));
 
 	auto sphere = geom::Sphere().subdivisions(128);
-	object = gl::Batch::create(sphere, glsl);
+	object = gl::Batch::create(sphere, sh_lighting_glsl);
 
 	double coefarr[16][3] = { { 0.588963, 0.58948, 0.591273 },
 	{ 3.18013e-009, 0.811326, 0.00318166 },
@@ -106,17 +53,17 @@ void sh_lightingApp::setup()
 	vec3 coefs[16];
 	for (int i = 0; i < 16; i++)
 		coefs[i] = { coefarr[i][0], coefarr[i][1], coefarr[i][2] };
-	glsl->uniform("coef", coefs, 16);
+	sh_lighting_glsl->uniform("coef", coefs, 16);
 
 	// environment map
 	string img_files[6] = {"posx.jpg", "negx.jpg", "posy.jpg", "negy.jpg", "posz.jpg", "negz.jpg"};
 	for (int i = 0; i < 6; i++)
 		envimgs[i] = loadImage(loadAsset(img_files[i]));
-	mCubeMap = gl::TextureCubeMap::create(envimgs, gl::TextureCubeMap::Format().mipmap());
+	cubemap = gl::TextureCubeMap::create(envimgs, gl::TextureCubeMap::Format().mipmap());
 	auto envMapGlsl = gl::GlslProg::create(loadAsset("env_map.vert"), loadAsset("env_map.frag"));
 	auto skyBoxGlsl = gl::GlslProg::create(loadAsset("sky_box.vert"), loadAsset("sky_box.frag"));
-	mSkyBoxBatch = gl::Batch::create(geom::Cube(), skyBoxGlsl);
-	mSkyBoxBatch->getGlslProg()->uniform("uCubeMapTex", 0);
+	skybox = gl::Batch::create(geom::Cube(), skyBoxGlsl);
+	skybox->getGlslProg()->uniform("uCubeMapTex", 0);
 
 
 	gl::enableDepthWrite();
@@ -175,12 +122,12 @@ void sh_lightingApp::draw()
 	gl::setMatrices(cam);
 	object->draw();	
 	
-	mCubeMap->bind();
+	cubemap->bind();
 	// draw sky box
 	gl::pushMatrices();
 	const int SKY_BOX_SIZE = 500;
 	gl::scale(SKY_BOX_SIZE, SKY_BOX_SIZE, SKY_BOX_SIZE);
-	mSkyBoxBatch->draw();
+	skybox->draw();
 	gl::popMatrices();
 }
 
