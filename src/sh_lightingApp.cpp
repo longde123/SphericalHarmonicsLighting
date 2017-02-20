@@ -35,7 +35,6 @@ void sh_lightingApp::setup()
 	for (int i = 0; i < 6; i++)
 		img_files[i] = cmds[i + 1];
 	string sh_coef_file = cmds[7];
-	double coefarr[16][3];
 	ifstream ifs(sh_coef_file);
 	if (!ifs)
 		throw runtime_error("open " + sh_coef_file + " failed");
@@ -121,7 +120,7 @@ void sh_lightingApp::draw()
 	cubemap->bind();
 	// draw sky box
 	gl::pushMatrices();
-	const int SKY_BOX_SIZE = 500;
+	const float SKY_BOX_SIZE = 500.f;
 	gl::scale(SKY_BOX_SIZE, SKY_BOX_SIZE, SKY_BOX_SIZE);
 	skybox->draw();
 	gl::popMatrices();
