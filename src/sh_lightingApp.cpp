@@ -64,11 +64,6 @@ void sh_lightingApp::setup()
 
 	gl::enableDepthWrite();
 	gl::enableDepthRead();
-	glEnable(GL_MULTISAMPLE);
-	gl::enable(GL_LINE_SMOOTH);
-	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-	gl::enable(GL_POLYGON_SMOOTH);
-	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 }
 
 void sh_lightingApp::resize()

@@ -35,7 +35,7 @@ void main(void) {
 	basis[14] = 1.f / 4.f*sqrt(105.f / PI)*(x2 - y2)*z;
 	basis[15] = 1.f / 4.f*sqrt(35.f / (2 * PI))*(x2 - 3 * y2)*x;
 
-	vec3 c;
+	vec3 c = vec3(0,0,0);
 	for (int i = 0; i < SH_NUM; i++)
 		c += coef[i] * basis[i];
 	oColor = vec4(c, 1);
