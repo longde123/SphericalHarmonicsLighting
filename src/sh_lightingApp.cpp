@@ -29,8 +29,8 @@ class sh_lightingApp : public App {
 void sh_lightingApp::setup()
 {
 	auto cmds = this->getCommandLineArgs();
-	if (cmds.size() < 8)
-		throw runtime_error("Usage: sh_lighting posx negx posy negy posz negz coefficients.txt");
+	if (cmds.size() < 9)
+		throw runtime_error("Usage: sh_lighting posx negx posy negy posz negz coefficients.txt obj");
 	string img_files[6];
 	for (int i = 0; i < 6; i++)
 		img_files[i] = cmds[i + 1];
@@ -46,9 +46,10 @@ void sh_lightingApp::setup()
 	cam.lookAt({ 3, 4, 5 }, {}, { 0, 1, 0 });
 	sh_lighting_glsl = gl::GlslProg::create(loadAsset("sh_lighting.vert"), loadAsset("sh_lighting.frag"));
 
-	auto sphere = geom::Sphere().subdivisions(128);
-	object = gl::Batch::create(sphere, sh_lighting_glsl);
-
+	auto obj = ObjLoader(loadFile(cmds[8]));
+	
+	object = gl::Batch::create(obj, sh_lighting_glsl);
+	
 	sh_lighting_glsl->uniform("coef", coefs, 16);
 
 	// environment map
@@ -63,7 +64,11 @@ void sh_lightingApp::setup()
 
 	gl::enableDepthWrite();
 	gl::enableDepthRead();
-
+	glEnable(GL_MULTISAMPLE);
+	gl::enable(GL_LINE_SMOOTH);
+	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+	gl::enable(GL_POLYGON_SMOOTH);
+	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 }
 
 void sh_lightingApp::resize()
