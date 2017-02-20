@@ -51,7 +51,7 @@ void Cubemap::Read(T& proc)
 		for (int j = 0; j < img.rows; j++){
 			for (int i = 0; i < img.cols; i++){
 				auto pixel = img.at<cv::Vec3f>(j, i);
-				RGB color = { pixel[0], pixel[1], pixel[2] };
+				RGB color = { pixel[2], pixel[1], pixel[0] };
 				float u = float(i) / w;
 				float v = float(img.rows - j - 1) / h;
 				XYZ p;
