@@ -10,13 +10,18 @@ class sh_lightingApp : public App {
 	void mouseDown( MouseEvent event ) override;
 	void mouseDrag(MouseEvent event) override;
 	void mouseMove(MouseEvent event) override;
-	void mouseWheel(MouseEvent event) override;
+	void mouseWheel(MouseEvent event) override; 
+	void resize() override;
 	void update() override;
 	void draw() override;
 
 	CameraPersp cam;
 	gl::BatchRef        object;
 	gl::GlslProgRef		glsl;
+
+	ImageSourceRef envimgs[6];
+	gl::TextureCubeMapRef	mCubeMap;
+	gl::BatchRef			mSkyBoxBatch;
 
 	int mousex, mousey;
 };
@@ -103,9 +108,25 @@ void sh_lightingApp::setup()
 		coefs[i] = { coefarr[i][0], coefarr[i][1], coefarr[i][2] };
 	glsl->uniform("coef", coefs, 16);
 
+	// environment map
+	string img_files[6] = {"posx.jpg", "negx.jpg", "posy.jpg", "negy.jpg", "posz.jpg", "negz.jpg"};
+	for (int i = 0; i < 6; i++)
+		envimgs[i] = loadImage(loadAsset(img_files[i]));
+	mCubeMap = gl::TextureCubeMap::create(envimgs, gl::TextureCubeMap::Format().mipmap());
+	auto envMapGlsl = gl::GlslProg::create(loadAsset("env_map.vert"), loadAsset("env_map.frag"));
+	auto skyBoxGlsl = gl::GlslProg::create(loadAsset("sky_box.vert"), loadAsset("sky_box.frag"));
+	mSkyBoxBatch = gl::Batch::create(geom::Cube(), skyBoxGlsl);
+	mSkyBoxBatch->getGlslProg()->uniform("uCubeMapTex", 0);
+
+
 	gl::enableDepthWrite();
 	gl::enableDepthRead();
 
+}
+
+void sh_lightingApp::resize()
+{
+	cam.setPerspective(60, getWindowAspectRatio(), 1, 1000);
 }
 
 void sh_lightingApp::mouseDown( MouseEvent event )
@@ -153,6 +174,14 @@ void sh_lightingApp::draw()
 	gl::clear( Color( 0, 0, 0 ) ); 
 	gl::setMatrices(cam);
 	object->draw();	
+	
+	mCubeMap->bind();
+	// draw sky box
+	gl::pushMatrices();
+	const int SKY_BOX_SIZE = 500;
+	gl::scale(SKY_BOX_SIZE, SKY_BOX_SIZE, SKY_BOX_SIZE);
+	mSkyBoxBatch->draw();
+	gl::popMatrices();
 }
 
 CINDER_APP( sh_lightingApp, RendererGl )
