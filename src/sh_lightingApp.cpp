@@ -8,12 +8,16 @@ class sh_lightingApp : public App {
   public:
 	void setup() override;
 	void mouseDown( MouseEvent event ) override;
+	void mouseDrag(MouseEvent event) override;
+	void mouseMove(MouseEvent event) override;
 	void update() override;
 	void draw() override;
 
 	CameraPersp cam;
 	gl::BatchRef        object;
 	gl::GlslProgRef		glsl;
+
+	int mousex, mousey;
 };
 
 void sh_lightingApp::setup()
@@ -29,7 +33,8 @@ void sh_lightingApp::setup()
 		out vec3 normal;
 		void main(void) {
 			gl_Position = ciModelViewProjection * ciPosition;
-			normal = normalize(ciNormalMatrix * ciNormal);
+			//normal = normalize(ciNormalMatrix * ciNormal);
+			normal = normalize(ciNormal);
 		}
 		))
 	.fragment(CI_GLSL(150,
@@ -68,7 +73,7 @@ void sh_lightingApp::setup()
 
 			vec3 c;			
 			for (int i = 0; i < 16; i++)
-				c += coef[i] * basis[0];
+				c += coef[i] * basis[i];
 			oColor = vec4(c, 1);
 		}
 	)));
@@ -76,22 +81,22 @@ void sh_lightingApp::setup()
 	auto sphere = geom::Sphere().subdivisions(128);
 	object = gl::Batch::create(sphere, glsl);
 
-	double coefarr[16][3] = { { 2.02137, 2.10014, 2.19224 },
-	{ 0.728084, 0.659208, 0.618444 },
-	{ -0.0278568, -0.0393272, -0.049202 },
-	{ 0.0672803, 0.0409734, 0.0428926 },
-	{ 0.00966223, 0.0187042, 0.0394783 },
-	{ 0.119934, 0.160242, 0.184851 },
-	{ -0.153318, -0.162547, -0.177194 },
-	{ -0.0466776, -0.0387007, -0.0361776 },
-	{ -0.145646, -0.163856, -0.193314 },
-	{ 0.29249, 0.281979, 0.278564 },
-	{ -0.0306449, -0.0334904, -0.0349825 },
-	{ 0.168543, 0.156271, 0.159067 },
-	{ -0.0284515, -0.0350536, -0.0377981 },
-	{ 0.15902, 0.15559, 0.16417 },
-	{ 0.0491475, 0.0416729, 0.0415318 },
-	{ 0.12386, 0.12666, 0.128872 } };
+	double coefarr[16][3] = { { 0.58948, 0.58948, 0.58948 },
+	{ 0.811326, 0.811326, 0.811326 },
+	{ 9.74207e-009, 9.74207e-009, 9.74207e-009 },
+	{ -1.26291e-009, -1.26291e-009, -1.26291e-009 },
+	{ 1.65055e-009, 1.65055e-009, 1.65055e-009 },
+	{ 1.36179e-008, 1.36179e-008, 1.36179e-008 },
+	{ -0.302541, -0.302541, -0.302541 },
+	{ 6.5717e-011, 6.5717e-011, 6.5717e-011 },
+	{ -0.524082, -0.524082, -0.524082 },
+	{ -0.145148, -0.145148, -0.145148 },
+	{ 1.19815e-009, 1.19815e-009, 1.19815e-009 },
+	{ -0.112434, -0.112434, -0.112434 },
+	{ 3.37324e-008, 3.37324e-008, 3.37324e-008 },
+	{ -2.60844e-010, -2.60844e-010, -2.60844e-010 },
+	{ -2.301e-009, -2.301e-009, -2.301e-009 },
+	{ -1.03469e-009, -1.03469e-009, -1.03469e-009 } };
 	vec3 coefs[16];
 	for (int i = 0; i < 16; i++)
 		coefs[i] = { coefarr[i][0], coefarr[i][1], coefarr[i][2] };
@@ -104,6 +109,30 @@ void sh_lightingApp::setup()
 
 void sh_lightingApp::mouseDown( MouseEvent event )
 {
+	auto pos = event.getPos();
+	mousex = pos.x;
+	mousey = pos.y;
+}
+
+void sh_lightingApp::mouseDrag(MouseEvent event)
+{
+	auto pos = event.getPos();
+	float dx = -(pos.x - mousex)*0.01f;
+	float dy = -(pos.y - mousey)*0.01f;
+	auto p = cam.getEyePoint();
+	auto up = cam.getWorldUp();
+	auto dir = cam.getViewDirection();
+	auto right = normalize(cross(dir, up));
+	auto hrot = glm::rotate(dx, up);
+	auto vrot = glm::rotate(dy, right);
+	auto neweye = hrot*vrot*vec4{ p, 1 };
+	cam.lookAt(vec3(neweye), {0,0,0}, up);
+	mousex = pos.x;
+	mousey = pos.y;
+}
+
+void sh_lightingApp::mouseMove(MouseEvent event)
+{	
 }
 
 void sh_lightingApp::update()
@@ -114,8 +143,8 @@ void sh_lightingApp::draw()
 {
 	gl::clear( Color( 0, 0, 0 ) ); 
 	gl::setMatrices(cam);
-
-	object->draw();	
+	//object->draw();	
+	gl::drawCube({}, { 1, 1, 1 });
 }
 
 CINDER_APP( sh_lightingApp, RendererGl )
