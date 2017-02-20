@@ -161,6 +161,6 @@ void WritePLY::operator()(XYZRGB pixel)
 
 std::ostream& operator<<(std::ostream& os, RGB color)
 {
-	os << '{' << color.r << ',' << color.g << ',' << color.b << '}';
+	os << color.r << '\t' << color.g << '\t' << color.b;
 	return os;
 }
