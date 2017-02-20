@@ -1,5 +1,7 @@
 #version 150
 
+const int SH_NUM = 9;
+
 const float PI = 3.1415926535897932384626433832795;
 in vec3 normal;
 uniform vec3 coef[16];
@@ -34,7 +36,7 @@ void main(void) {
 	basis[15] = 1.f / 4.f*sqrt(35.f / (2 * PI))*(x2 - 3 * y2)*x;
 
 	vec3 c;
-	for (int i = 0; i < 16; i++)
+	for (int i = 0; i < SH_NUM; i++)
 		c += coef[i] * basis[i];
 	oColor = vec4(c, 1);
 }
